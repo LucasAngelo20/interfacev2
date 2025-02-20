@@ -42,18 +42,25 @@ const App = () => {
   const [botRunning, setBotRunning] = useState(false);
   const [theefOrder, setTheefOrder] = useState(false);
   const [updateSocket, setUpdateSocket] = useState(false);
+  const [prices, setPrices] = useState(false);
+  const [ask, setAsk] = useState("");
+  const [bid, setBid] = useState("");
+  const [thiefAsk, setThiefAsk] = useState("");
+  const [thiefBid, setThiefBid] = useState("");
+  const [spread, setSpread] = useState("");
 
   useEffect(() => {
     const ws = new WebSocket("ws://13.231.10.120:7070/ws");
     setSocket(ws);
 
-    ws.onopen = () =>{ console.log("WebSocket conectado");
-      setWsMessage({Status: "success", Message: "WebSocket connected"})
+    ws.onopen = () => {
+      console.log("WebSocket conectado");
+      setWsMessage({ Status: "success", Message: "WebSocket connected" })
     }
     ws.onerror = (error) => console.error("Erro no WebSocket:", error);
     ws.onclose = () => {
       console.log("WebSocket desconectado")
-      setWsMessage({Status: "error", Message: "WebSocket diconnected"})
+      setWsMessage({ Status: "error", Message: "WebSocket diconnected" })
       setBotRunning(false)
     }
     ws.onmessage = async (event) => {
@@ -80,19 +87,29 @@ const App = () => {
     const ws = new WebSocket("ws://13.231.10.120:7070/ws");
     setSocket(ws);
     if (ws != null) {
-      ws.onopen = () =>{ console.log("WebSocket conectado");
-        setWsMessage({Status: "success", Message: "WebSocket connected"})
+      ws.onopen = () => {
+        console.log("WebSocket conectado");
+        setWsMessage({ Status: "success", Message: "WebSocket connected" })
       }
 
       ws.onclose = () => {
         console.log("WebSocket desconectado")
-        setWsMessage({Status: "error", Message: "WebSocket diconnected"})
+        setWsMessage({ Status: "error", Message: "WebSocket diconnected" })
         setBotRunning(false)
       }
       ws.onerror = (error) => console.error("Erro no WebSocket:", error);
       ws.onmessage = async (event) => {
         const message = JSON.parse(event.data);
         console.log("Mensagem recebida:", message);
+        if (message.Status === "prices") {
+          setPrices(true)
+          setAsk(message.Ask)
+          setBid(message.Bid)
+          setThiefAsk(message.ThiefAsk)
+          setThiefBid(message.ThiefBid)
+          setSpread(message.Spread)
+          // setMessage(message)
+        }
         if (message.Status === "success" && message.Message.includes("running")) {
           setBotRunning(true);
         }
@@ -100,7 +117,7 @@ const App = () => {
           setBotRunning(false);
         }
         setWsMessage(message);
-  
+
       };
     }
 
@@ -119,16 +136,16 @@ const App = () => {
       [name]:
         type === "checkbox"
           ? checked
-          : type === "text" 
-          ? value
-          : name === "Side"
-          ? String(value)
-          : name === "TheefOrder"
-          ? setTheefOrder(value)
-          : name === "Symbol"
-          ? String(value)
-          : value
-          ,
+          : type === "text"
+            ? value
+            : name === "Side"
+              ? String(value)
+              : name === "TheefOrder"
+                ? setTheefOrder(value)
+                : name === "Symbol"
+                  ? String(value)
+                  : value
+      ,
     }));
   };
 
@@ -173,6 +190,7 @@ const App = () => {
       },
     };
     sendMessage(payload);
+    setPrices(false)
   };
 
   const handleStop = () => {
@@ -224,10 +242,10 @@ const App = () => {
           <Typography variant="h4" gutterBottom textAlign="center">
             Binance Configuration
           </Typography>
-          <Button fullWidth style={{alignSelf: "center", margin: "0 0 20px 0"}} onClick={() => setUpdateSocket(!updateSocket)}>Reconnect socket </Button>
+          <Button fullWidth style={{ alignSelf: "center", margin: "0 0 20px 0" }} onClick={() => setUpdateSocket(!updateSocket)}>Reconnect socket </Button>
 
           <FormControl fullWidth>
-          <InputLabel id="SymbolId">Age</InputLabel>
+            <InputLabel id="SymbolId">Age</InputLabel>
             <Select
               label="Symbol"
               labelId="SymbolId"
@@ -235,30 +253,30 @@ const App = () => {
               id="SymbolId"
               value={FormData.Symbol}
               onChange={handleChange}
-              style={{margin: "0 0 40px 0"}}
+              style={{ margin: "0 0 40px 0" }}
             >
               <MenuItem value={"BTC"}>BTC</MenuItem>
               <MenuItem value={"USD"}>USD</MenuItem>
-            </Select> 
-            </FormControl>
-            <FormControl fullWidth>
+            </Select>
+          </FormControl>
+          <FormControl fullWidth>
             <InputLabel id="SideId">Side</InputLabel>
-             <Select
+            <Select
               labelId="SideId"
               name="Side"
               id="SideId"
               value={FormData.Side}
               label="Side"
               onChange={handleChange}
-              style={{margin: "0 0 40px 0"}}
+              style={{ margin: "0 0 40px 0" }}
 
             >
               <MenuItem type="select" value={"buy"}>Buy</MenuItem>
               <MenuItem type="select" value={"sell"}>Sell</MenuItem>
               <MenuItem type="select" value={"both"}>Both</MenuItem>
             </Select>
-            </FormControl>
-            <FormControl fullWidth>
+          </FormControl>
+          <FormControl fullWidth>
             <InputLabel id="TheefOrderId">Theef order</InputLabel>
 
             <Select
@@ -268,157 +286,180 @@ const App = () => {
               value={FormData.TheefOrder}
               label="TheefOrder"
               type="select"
-              onChange={handleChange}             
-               style={{margin: "0 0 40px 0"}}
+              onChange={handleChange}
+              style={{ margin: "0 0 40px 0" }}
             >
               <MenuItem type="select" value={true}>Enabled</MenuItem>
               <MenuItem type="select" value={false}>Disabled</MenuItem>
             </Select>
-            </FormControl>
+          </FormControl>
 
-            <TextField
-            style={{margin: "0 0 40px 0"}}
-              label="Max Position(Dol)"
-              name="MaxPosition"
-              type="text"
-              value={formData.MaxPosition}
-              onChange={handleChange}
-              fullWidth
-              
-            />
-            <TextField
-            style={{margin: "0 0 40px 0"}}
-              label="Spread Risk AdjBps"
-              name="SpreadRiskAdjBps"
-              type="text"
+          <TextField
+            style={{ margin: "0 0 40px 0" }}
+            label="Max Position(Dol)"
+            name="MaxPosition"
+            type="text"
+            value={formData.MaxPosition}
+            onChange={handleChange}
+            fullWidth
 
-              value={formData.SpreadRiskAdjBps}
-              onChange={handleChange}
-              fullWidth
-            />
-            <TextField
-            style={{margin: "0 0 40px 0"}}
-              label="Spread Buy (Bps)"
-              name="SpreadBuyBps"
-              type="text"
+          />
+          <TextField
+            style={{ margin: "0 0 40px 0" }}
+            label="Spread Risk AdjBps"
+            name="SpreadRiskAdjBps"
+            type="text"
+            disabled
+            value={formData.SpreadRiskAdjBps}
+            onChange={handleChange}
+            fullWidth
+          />
+          <TextField
+            style={{ margin: "0 0 40px 0" }}
+            label="Spread Buy (Bps)"
+            name="SpreadBuyBps"
+            type="text"
 
-              value={formData.SpreadBuyBps}
-              onChange={handleChange}
-              fullWidth
-            />
-            <TextField
-            style={{margin: "0 0 40px 0"}}
-              label="Spread Sell (Bps)"
-              name="SpreadSellBps"
-              type="text"
+            value={formData.SpreadBuyBps}
+            onChange={handleChange}
+            fullWidth
+          />
+          <TextField
+            style={{ margin: "0 0 40px 0" }}
+            label="Spread Sell (Bps)"
+            name="SpreadSellBps"
+            type="text"
 
-              value={formData.SpreadSellBps}
-              onChange={handleChange}
-              fullWidth
-            />
-            <TextField
-            style={{margin: "0 0 40px 0"}}
-              label="Order Size (Buy $)"
-              name="OrderSizeDolBuy"
-              type="text"
+            value={formData.SpreadSellBps}
+            onChange={handleChange}
+            fullWidth
+          />
+          <TextField
+            style={{ margin: "0 0 40px 0" }}
+            label="Order Size (Buy $)"
+            name="OrderSizeDolBuy"
+            type="text"
 
-              value={formData.OrderSizeDolBuy}
-              onChange={handleChange}
-              fullWidth
-            />
-            <TextField
-            style={{margin: "0 0 40px 0"}}
-              label="Order Size (Sell $)"
-              name="OrderSizeDolSell"
-              type="text"
+            value={formData.OrderSizeDolBuy}
+            onChange={handleChange}
+            fullWidth
+          />
+          <TextField
+            style={{ margin: "0 0 40px 0" }}
+            label="Order Size (Sell $)"
+            name="OrderSizeDolSell"
+            type="text"
 
-              value={formData.OrderSizeDolSell}
-              onChange={handleChange}
-              fullWidth
-            />
-            <TextField
-            style={{margin: "0 0 40px 0"}}
-              label="Tolerance (Bps)"
-              name="ToleranceBps"
-              type="text"
+            value={formData.OrderSizeDolSell}
+            onChange={handleChange}
+            fullWidth
+          />
+          <TextField
+            style={{ margin: "0 0 40px 0" }}
+            label="Tolerance (Bps)"
+            name="ToleranceBps"
+            type="text"
 
-              value={formData.ToleranceBps}
-              onChange={handleChange}
-              fullWidth
-            />
-            {theefOrder && (
-                <>
-                 <TextField
-                 style={{margin: "0 0 40px 0"}}
-              label="Theef Spread Buy (Bps)"
-              name="TheefSpreadBuyBps"
-              type="text"
+            value={formData.ToleranceBps}
+            onChange={handleChange}
+            fullWidth
+          />
+          {theefOrder && (
+            <>
+              <TextField
+                style={{ margin: "0 0 40px 0" }}
+                label="Theef Spread Buy (Bps)"
+                name="TheefSpreadBuyBps"
+                type="text"
 
-              value={formData.TheefSpreadBuyBps}
-              onChange={handleChange}
-              fullWidth
-            />
-            <TextField
-            style={{margin: "0 0 40px 0"}}
-              label="Theef Spread Sell (Bps)"
-              name="TheefSpreadSellBps"
-              type="text"
+                value={formData.TheefSpreadBuyBps}
+                onChange={handleChange}
+                fullWidth
+              />
+              <TextField
+                style={{ margin: "0 0 40px 0" }}
+                label="Theef Spread Sell (Bps)"
+                name="TheefSpreadSellBps"
+                type="text"
 
-              value={formData.TheefSpreadSellBps}
-              onChange={handleChange}
-              fullWidth
-            />
-            <TextField
-            style={{margin: "0 0 40px 0"}}
-              label="Theef Order Size (Buy $)"
-              name="TheefOrderSizeDolBuy"
-              type="text"
+                value={formData.TheefSpreadSellBps}
+                onChange={handleChange}
+                fullWidth
+              />
+              <TextField
+                style={{ margin: "0 0 40px 0" }}
+                label="Theef Order Size (Buy $)"
+                name="TheefOrderSizeDolBuy"
+                type="text"
 
-              value={formData.TheefOrderSizeDolBuy}
-              onChange={handleChange}
-              fullWidth
-            />
-            <TextField
-            style={{margin: "0 0 40px 0"}}
-              label="Theef Order Size (Sell $)"
-              name="TheefOrderSizeDolSell"
-              type="text"
+                value={formData.TheefOrderSizeDolBuy}
+                onChange={handleChange}
+                fullWidth
+              />
+              <TextField
+                style={{ margin: "0 0 40px 0" }}
+                label="Theef Order Size (Sell $)"
+                name="TheefOrderSizeDolSell"
+                type="text"
 
-              value={formData.TheefOrderSizeDolSell}
-              onChange={handleChange}
-              fullWidth
-            />
-                </>
-              )}
-            <FormControlLabel
-              control={
-                <Checkbox
-                  name="Parse"
-                  checked={formData.Parse}
-                  onChange={handleChange}
-                />
-              }
-              label="Partially-filled"
-            />
-            <Stack direction="row" spacing={2} justifyContent="center">
-              <Button variant="contained" color="primary" onClick={handleSave}>
-                Save
-              </Button>
-              <Button variant="outlined" color="success" onClick={handleStart}>
-                Start
-              </Button>
-              <Button variant="outlined" color="error" onClick={handleStop}>
-                Stop
-              </Button>
-              <Button
-                variant="outlined"
-                color="error"
-                onClick={handleCloseOrders}
-              >
-                Close all orders
-              </Button>
+                value={formData.TheefOrderSizeDolSell}
+                onChange={handleChange}
+                fullWidth
+              />
+            </>
+          )}
+          <FormControlLabel
+            control={
+              <Checkbox
+                name="Parse"
+                checked={formData.Parse}
+                onChange={handleChange}
+              />
+            }
+            label="Partially-filled"
+          />
+          <Stack direction="row" spacing={3} justifyContent="center" marginTop={5}>
+            <Button variant="contained" color="primary" onClick={handleSave}>
+              Save
+            </Button>
+            <Button variant="outlined" color="success" onClick={handleStart}>
+              Start
+            </Button>
+            <Button variant="outlined" color="error" onClick={handleStop}>
+              Stop
+            </Button>
+            <Button
+              variant="outlined"
+              color="error"
+              onClick={handleCloseOrders}
+            >
+              Close all orders
+            </Button>
+            
           </Stack>
+          <div>
+          {prices && (
+            <p
+              style={{color: "black" }}
+            >
+              Ask: {ask}{" "},
+              Bid: {bid}{" "},
+              Spread: {spread}{" "}
+            </p>
+          )}
+        </div>
+          <div>
+          {prices && theefOrder && (
+            <p
+              style={{color: "black" }}
+            >
+              ThiefAsk: {thiefAsk}{" "},
+              ThiefBid: {thiefBid}{" "},
+            </p>
+          )}
+        </div>
         </Paper>
+       
         <div>
           {wsMessage && (
             <p
@@ -428,6 +469,7 @@ const App = () => {
             </p>
           )}
         </div>
+       
       </Box>
     </ThemeProvider>
   );
