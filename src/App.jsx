@@ -29,10 +29,10 @@ const App = () => {
     SpreadSellBps: "0",
     OrderSizeDolBuy: "100000",
     OrderSizeDolSell: "100000",
-    TheefSpreadBuyBps: "0",
-    TheefSpreadSellBps: "0",
-    TheefOrderSizeDolBuy: "100000",
-    TheefOrderSizeDolSell: "100000",
+    ThiefSpreadBuyBps: "0",
+    ThiefSpreadSellBps: "0",
+    ThiefOrderSizeDolBuy: "100000",
+    ThiefOrderSizeDolSell: "100000",
     ToleranceBps: "2",
     Parse: false,
   });
@@ -40,7 +40,7 @@ const App = () => {
   const [socket, setSocket] = useState(null);
   const [wsMessage, setWsMessage] = useState("");
   const [botRunning, setBotRunning] = useState(false);
-  const [theefOrder, setTheefOrder] = useState(false);
+  const [thiefOrder, setThiefOrder] = useState(false);
   const [updateSocket, setUpdateSocket] = useState(false);
   const [prices, setPrices] = useState(false);
   const [ask, setAsk] = useState("");
@@ -140,8 +140,8 @@ const App = () => {
             ? value
             : name === "Side"
               ? String(value)
-              : name === "TheefOrder"
-                ? setTheefOrder(value)
+              : name === "ThiefOrder"
+                ? setThiefOrder(value)
                 : name === "Symbol"
                   ? String(value)
                   : value
@@ -163,17 +163,17 @@ const App = () => {
       Data: {
         Side: formData.Side,
         Symbol: formData.Symbol,
-        TheefOrder: theefOrder,
+        ThiefOrder: thiefOrder,
         MaxPosition: formData.MaxPosition,
         SpreadRiskAdjBps: formData.SpreadRiskAdjBps,
         SpreadBuyBps: formData.SpreadBuyBps,
         SpreadSellBps: formData.SpreadSellBps,
         OrderSizeDolBuy: formData.OrderSizeDolBuy,
         OrderSizeDolSell: formData.OrderSizeDolSell,
-        TheefSpreadBuyBps: formData.TheefSpreadBuyBps,
-        TheefSpreadSellBps: formData.TheefSpreadSellBps,
-        TheefOrderSizeDolBuy: formData.TheefOrderSizeDolBuy,
-        TheefOrderSizeDolSell: formData.TheefOrderSizeDolSell,
+        ThiefSpreadBuyBps: formData.ThiefSpreadBuyBps,
+        ThiefSpreadSellBps: formData.ThiefSpreadSellBps,
+        ThiefOrderSizeDolBuy: formData.ThiefOrderSizeDolBuy,
+        ThiefOrderSizeDolSell: formData.ThiefOrderSizeDolSell,
         ToleranceBps: formData.ToleranceBps,
         Parse: formData.Parse,
       },
@@ -245,7 +245,7 @@ const App = () => {
           <Button fullWidth style={{ alignSelf: "center", margin: "0 0 20px 0" }} onClick={() => setUpdateSocket(!updateSocket)}>Reconnect socket </Button>
 
           <FormControl fullWidth>
-            <InputLabel id="SymbolId">Age</InputLabel>
+            <InputLabel id="SymbolId">Asset</InputLabel>
             <Select
               label="Symbol"
               labelId="SymbolId"
@@ -277,14 +277,14 @@ const App = () => {
             </Select>
           </FormControl>
           <FormControl fullWidth>
-            <InputLabel id="TheefOrderId">Theef order</InputLabel>
+            <InputLabel id="ThiefOrderId">Thief order</InputLabel>
 
             <Select
-              labelId="TheefOrderId"
-              name="TheefOrder"
-              id="TheefOrderId"
-              value={FormData.TheefOrder}
-              label="TheefOrder"
+              labelId="ThiefOrderId"
+              name="ThiefOrder"
+              id="ThiefOrderId"
+              value={FormData.ThiefOrder}
+              label="ThiefOrder"
               type="select"
               onChange={handleChange}
               style={{ margin: "0 0 40px 0" }}
@@ -364,45 +364,45 @@ const App = () => {
             onChange={handleChange}
             fullWidth
           />
-          {theefOrder && (
+          {thiefOrder && (
             <>
               <TextField
                 style={{ margin: "0 0 40px 0" }}
-                label="Theef Spread Buy (Bps)"
-                name="TheefSpreadBuyBps"
+                label="Thief Spread Buy (Bps)"
+                name="ThiefSpreadBuyBps"
                 type="text"
 
-                value={formData.TheefSpreadBuyBps}
+                value={formData.ThiefSpreadBuyBps}
                 onChange={handleChange}
                 fullWidth
               />
               <TextField
                 style={{ margin: "0 0 40px 0" }}
-                label="Theef Spread Sell (Bps)"
-                name="TheefSpreadSellBps"
+                label="Thief Spread Sell (Bps)"
+                name="ThiefSpreadSellBps"
                 type="text"
 
-                value={formData.TheefSpreadSellBps}
+                value={formData.ThiefSpreadSellBps}
                 onChange={handleChange}
                 fullWidth
               />
               <TextField
                 style={{ margin: "0 0 40px 0" }}
-                label="Theef Order Size (Buy $)"
-                name="TheefOrderSizeDolBuy"
+                label="Thief Order Size (Buy $)"
+                name="ThiefOrderSizeDolBuy"
                 type="text"
 
-                value={formData.TheefOrderSizeDolBuy}
+                value={formData.ThiefOrderSizeDolBuy}
                 onChange={handleChange}
                 fullWidth
               />
               <TextField
                 style={{ margin: "0 0 40px 0" }}
-                label="Theef Order Size (Sell $)"
-                name="TheefOrderSizeDolSell"
+                label="Thief Order Size (Sell $)"
+                name="ThiefOrderSizeDolSell"
                 type="text"
 
-                value={formData.TheefOrderSizeDolSell}
+                value={formData.ThiefOrderSizeDolSell}
                 onChange={handleChange}
                 fullWidth
               />
@@ -435,7 +435,7 @@ const App = () => {
             >
               Close all orders
             </Button>
-            
+
           </Stack>
           <div>
           {prices && (
@@ -449,7 +449,7 @@ const App = () => {
           )}
         </div>
           <div>
-          {prices && theefOrder && (
+          {prices && thiefOrder && (
             <p
               style={{color: "black" }}
             >
@@ -459,7 +459,7 @@ const App = () => {
           )}
         </div>
         </Paper>
-       
+
         <div>
           {wsMessage && (
             <p
@@ -469,7 +469,7 @@ const App = () => {
             </p>
           )}
         </div>
-       
+
       </Box>
     </ThemeProvider>
   );
