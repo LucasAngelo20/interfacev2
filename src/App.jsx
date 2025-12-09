@@ -9,6 +9,7 @@ import {
   CssBaseline,
   Select,
   Alert,
+  Chip,
 } from "@mui/material";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 import MenuItem from "@mui/material/MenuItem";
@@ -32,28 +33,52 @@ const App = () => {
   });
 
   const [socket, setSocket] = useState(null);
-  const [wsMessage, setWsMessage] = useState({ Status: "", Message: "" });
+
+  // Estados bem separados
+  const [connectionStatus, setConnectionStatus] = useState("connecting"); // 'connecting' | 'connected' | 'disconnected'
   const [botRunning, setBotRunning] = useState(false);
-  const [updateSocket, setUpdateSocket] = useState(false);
+
   const [prices, setPrices] = useState(false);
   const [ask, setAsk] = useState("");
   const [bid, setBid] = useState("");
   const [thiefAsk, setThiefAsk] = useState("");
   const [thiefBid, setThiefBid] = useState("");
   const [spread, setSpread] = useState("");
-  const [contracts, setContracts] = useState(0);
-  const [env, setEnv] = useState("prod");
 
-  // ---- RISK ADJUST STATE ----
-  const [riskAdjust, setRiskAdjust] = useState(null); // valor bruto vindo da API
+  const [env, setEnv] = useState("prod");
+  const [updateSocket, setUpdateSocket] = useState(false);
+
+  // Risk Adjust
+  const [riskAdjust, setRiskAdjust] = useState(null); // valor numérico bruto vindo da API (ex: 0.0003)
   const [riskAdjustUpdatedAt, setRiskAdjustUpdatedAt] = useState(null);
   const [riskAdjustHighlight, setRiskAdjustHighlight] = useState(false);
 
-  // valor em BPS (exibido na UI)
-  const riskAdjustBps = riskAdjust != null ? riskAdjust * 10000 : null;
+  // Notificações (toast)
+  const [notifications, setNotifications] = useState([]); // {id, type, message}
+
+  const riskAdjustBps =
+    typeof riskAdjust === "number" ? riskAdjust * 10000 : null;
+
+  const addNotification = (type, message) => {
+    if (!message) return;
+    setNotifications((prev) => [
+      ...prev,
+      {
+        id: Date.now() + Math.random(),
+        type, // 'success' | 'error' | 'info' | 'warning'
+        message,
+      },
+    ]);
+  };
+
+  const removeNotification = (id) => {
+    setNotifications((prev) => prev.filter((n) => n.id !== id));
+  };
 
   // WebSocket
   useEffect(() => {
+    setConnectionStatus("connecting");
+
     const ws = new WebSocket(
       `ws://13.231.10.120:${env === "dev" ? 5050 : 7070}/ws`
     );
@@ -61,55 +86,81 @@ const App = () => {
 
     ws.onopen = () => {
       console.log("WebSocket conectado");
-      setWsMessage({ Status: "success", Message: "WebSocket connected" });
+      setConnectionStatus("connected");
+      addNotification("success", "WebSocket connected");
     };
 
-    ws.onerror = (error) => console.error("Erro no WebSocket:", error);
+    ws.onerror = (error) => {
+      console.error("Erro no WebSocket:", error);
+      addNotification("error", "WebSocket error");
+    };
 
     ws.onclose = () => {
       console.log("WebSocket desconectado");
-      setWsMessage({ Status: "error", Message: "WebSocket diconnected" });
+      setConnectionStatus("disconnected");
       setBotRunning(false);
+      addNotification("error", "WebSocket disconnected");
     };
 
     ws.onmessage = async (event) => {
       const message = JSON.parse(event.data);
       console.log("Mensagem recebida:", message);
 
-      // Preços
-      if (message.Status === "prices") {
-        setPrices(true);
-        setAsk(message.Ask);
-        setBid(message.Bid);
-        setThiefAsk(message.ThiefAsk);
-        setThiefBid(message.ThiefBid);
-        setSpread(message.Spread);
-      }
+      switch (message.Status) {
+        case "prices":
+          // Espera campos: Ask, Bid, ThiefAsk, ThiefBid, Spread
+          setPrices(true);
+          setAsk(message.Ask);
+          setBid(message.Bid);
+          setThiefAsk(message.ThiefAsk);
+          setThiefBid(message.ThiefBid);
+          setSpread(message.Spread);
+          break;
 
-      // Risk Adjust (showriskadjust)
-      if (message.Status === "showriskadjust") {
-        const value = Number(message.Value ?? 0);
-        setRiskAdjust(value);
-        setRiskAdjustUpdatedAt(new Date());
-        setRiskAdjustHighlight(true);
-        setTimeout(() => {
-          setRiskAdjustHighlight(false);
-        }, 2000);
-      }
+        case "riskadjust":
+          // Espera: Status: "riskadjust", Value: number (ex: 0.0003), Message (texto opcional)
+          if (typeof message.Value === "number") {
+            setRiskAdjust(message.Value);
+            setRiskAdjustUpdatedAt(new Date());
+            setRiskAdjustHighlight(true);
+            setTimeout(() => setRiskAdjustHighlight(false), 1500);
+          }
+          if (message.Message) {
+            addNotification("info", message.Message);
+          }
+          break;
 
-      // Status do bot
-      if (message.Status === "success" && message.Message?.includes("running")) {
-        setBotRunning(true);
-      }
+        case "success":
+          if (message.Message) {
+            addNotification("success", message.Message);
 
-      if (
-        message.Status === "success" &&
-        message.Message?.includes("stopped")
-      ) {
-        setBotRunning(false);
-      }
+            if (message.Message.includes("running")) {
+              setBotRunning(true);
+            }
+            if (message.Message.includes("stopped")) {
+              setBotRunning(false);
+            }
+          }
+          break;
 
-      setWsMessage(message);
+        case "error":
+          addNotification("error", message.Message || "Unknown error");
+          break;
+
+        case "message":
+          // logs gerais vindos do servidor (SendOrdersToSocket)
+          if (message.Message) {
+            addNotification("info", message.Message);
+          }
+          break;
+
+        default:
+          addNotification(
+            "warning",
+            `Unknown status from server: ${message.Status}`
+          );
+          break;
+      }
     };
 
     return () => {
@@ -119,10 +170,9 @@ const App = () => {
     };
   }, [env, updateSocket]);
 
-  // ---- HANDLERS ----
+  // Handlers
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    console.log("Infos: " + name + ", " + value + ", " + type + ", " + checked);
 
     setFormData((prev) => ({
       ...prev,
@@ -140,6 +190,7 @@ const App = () => {
       socket.send(JSON.stringify(message));
     } else {
       console.error("WebSocket não está conectado");
+      addNotification("error", "WebSocket is not connected");
     }
   };
 
@@ -148,50 +199,45 @@ const App = () => {
       Type: "params",
       Data: formData,
     };
-    console.log(payload);
+    console.log("Sending params:", payload);
     sendMessage(payload);
   };
 
   const handleStart = () => {
-    const payload = {
+    sendMessage({
       Type: "text",
       Data: { Text: "start" },
-    };
-    sendMessage(payload);
+    });
     setPrices(false);
   };
 
   const handleStop = () => {
-    const payload = {
+    sendMessage({
       Type: "text",
       Data: { Text: "stop" },
-    };
-    sendMessage(payload);
+    });
   };
 
   const handleCloseOrders = () => {
-    const payload = {
+    sendMessage({
       Type: "text",
       Data: { Text: "cancelorders" },
-    };
-    sendMessage(payload);
+    });
   };
 
   const handleRiskAdjustReset = () => {
-    const payload = {
+    sendMessage({
       Type: "riskadjust",
       Data: {
         value: 0,
       },
-    };
-    sendMessage(payload);
+    });
   };
 
   const handleShowRiskAdjust = () => {
-    const payload = {
+    sendMessage({
       Type: "showriskadjust",
-    };
-    sendMessage(payload);
+    });
   };
 
   const theme = createTheme({
@@ -208,33 +254,63 @@ const App = () => {
     },
   });
 
+  const connectionText =
+    connectionStatus === "connected"
+      ? "Connected to WebSocket"
+      : connectionStatus === "connecting"
+      ? "Connecting to WebSocket..."
+      : "Disconnected from WebSocket";
+
+  const connectionSeverity =
+    connectionStatus === "connected"
+      ? "success"
+      : connectionStatus === "connecting"
+      ? "info"
+      : "error";
+
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
       <Box sx={{ padding: 4, maxWidth: 1500, margin: "0 auto" }}>
         <Paper elevation={3} sx={{ padding: 4 }}>
-          {/* Status do Bot */}
-          <div
-            style={{
-              maxWidth: "10%",
-              display: "flex",
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "space-between",
-            }}
+          {/* Linha de status do bot + conexão */}
+          <Stack
+            direction="row"
+            spacing={2}
+            alignItems="center"
+            justifyContent="space-between"
+            mb={2}
           >
-            <div
-              style={{
-                width: 15,
-                height: 15,
-                borderRadius: 25,
-                background: botRunning ? "green" : "red",
-              }}
+            <Stack direction="row" spacing={1} alignItems="center">
+              <div
+                style={{
+                  width: 15,
+                  height: 15,
+                  borderRadius: 25,
+                  background: botRunning ? "green" : "red",
+                }}
+              />
+              <Typography
+                variant="body2"
+                sx={{ color: botRunning ? "green" : "red" }}
+              >
+                {botRunning ? "Bot is running" : "Bot is stopped"}
+              </Typography>
+            </Stack>
+
+            <Chip
+              label={connectionText}
+              color={
+                connectionStatus === "connected"
+                  ? "success"
+                  : connectionStatus === "connecting"
+                  ? "info"
+                  : "error"
+              }
+              variant={connectionStatus === "connected" ? "filled" : "outlined"}
+              size="small"
             />
-            <p style={{ color: botRunning ? "green" : "red" }}>
-              {botRunning ? "Bot is running" : "Bot is stopped"}
-            </p>
-          </div>
+          </Stack>
 
           <Typography variant="h4" gutterBottom textAlign="center">
             Binance Configuration
@@ -259,7 +335,7 @@ const App = () => {
             </Select>
           </FormControl>
 
-          {/* Thief Order */}
+          {/* Thief order */}
           <FormControl fullWidth>
             <InputLabel id="ThiefOrderId">Thief order</InputLabel>
             <Select
@@ -409,6 +485,7 @@ const App = () => {
             spacing={3}
             justifyContent="center"
             marginTop={5}
+            flexWrap="wrap"
           >
             <Button
               variant="outlined"
@@ -452,33 +529,79 @@ const App = () => {
             </Button>
           </Stack>
 
-          {/* Infos de preço */}
-          <div>
-            {prices && (
-              <p style={{ color: "black" }}>
-                Ask: {ask} , Bid: {bid} , Spread: {spread}
-              </p>
-            )}
-          </div>
-          <div>
-            {prices && formData.ThiefOrder && (
-              <p style={{ color: "black" }}>
-                ThiefAsk: {thiefAsk} , ThiefBid: {thiefBid}
-              </p>
-            )}
-          </div>
+          {/* Card de preços (quando API mandar Status: "prices") */}
+          {prices && (
+            <Box mt={4}>
+              <Paper elevation={1} sx={{ p: 2 }}>
+                <Typography
+                  variant="subtitle2"
+                  color="text.secondary"
+                  gutterBottom
+                >
+                  Price preview (after saving spreads)
+                </Typography>
+
+                <Stack direction="row" spacing={4} flexWrap="wrap">
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">
+                      Main book
+                    </Typography>
+                    <Typography variant="body2">
+                      Ask: <strong>{ask}</strong>
+                    </Typography>
+                    <Typography variant="body2">
+                      Bid: <strong>{bid}</strong>
+                    </Typography>
+                    <Typography variant="body2">
+                      Spread: <strong>{spread}</strong>
+                    </Typography>
+                  </Box>
+
+                  {formData.ThiefOrder && (
+                    <Box>
+                      <Typography variant="caption" color="text.secondary">
+                        Thief book
+                      </Typography>
+                      <Typography variant="body2">
+                        Thief Ask: <strong>{thiefAsk}</strong>
+                      </Typography>
+                      <Typography variant="body2">
+                        Thief Bid: <strong>{thiefBid}</strong>
+                      </Typography>
+                    </Box>
+                  )}
+                </Stack>
+              </Paper>
+            </Box>
+          )}
         </Paper>
 
-        {/* Mensagens gerais do socket (log / status) */}
-        {wsMessage?.Message &&
-          wsMessage.Status !== "showriskadjust" && (
+        {/* Barra de status de conexão em forma de Alert (opcional) */}
+        <Box mt={2}>
+          <Alert severity={connectionSeverity}>{connectionText}</Alert>
+        </Box>
+
+        {/* NOTIFICAÇÕES (bottom-right) */}
+        <Box
+          sx={{
+            position: "fixed",
+            bottom: 16,
+            right: 16,
+            zIndex: 1300,
+            width: 320,
+          }}
+        >
+          {notifications.map((n) => (
             <Alert
-              severity={wsMessage.Status === "error" ? "error" : "success"}
-              sx={{ mt: 3 }}
+              key={n.id}
+              severity={n.type}
+              onClose={() => removeNotification(n.id)}
+              sx={{ mb: 1 }}
             >
-              {wsMessage.Message}
+              {n.message}
             </Alert>
-          )}
+          ))}
+        </Box>
       </Box>
     </ThemeProvider>
   );
