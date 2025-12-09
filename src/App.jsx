@@ -10,6 +10,8 @@ import {
   Select,
   Alert,
   Chip,
+  Grid,
+  Divider,
 } from "@mui/material";
 import { ThemeProvider, createTheme } from "@mui/material/styles";
 import MenuItem from "@mui/material/MenuItem";
@@ -108,7 +110,6 @@ const App = () => {
 
       switch (message.Status) {
         case "prices":
-          // Espera campos: Ask, Bid, ThiefAsk, ThiefBid, Spread
           setPrices(true);
           setAsk(message.Ask);
           setBid(message.Bid);
@@ -118,7 +119,6 @@ const App = () => {
           break;
 
         case "riskadjust":
-          // Espera: Status: "riskadjust", Value: number (ex: 0.0003), Message (texto opcional)
           if (typeof message.Value === "number") {
             setRiskAdjust(message.Value);
             setRiskAdjustUpdatedAt(new Date());
@@ -148,7 +148,6 @@ const App = () => {
           break;
 
         case "message":
-          // logs gerais vindos do servidor (SendOrdersToSocket)
           if (message.Message) {
             addNotification("info", message.Message);
           }
@@ -242,15 +241,9 @@ const App = () => {
 
   const theme = createTheme({
     palette: {
-      primary: {
-        main: "#1976d2",
-      },
-      success: {
-        main: "#2e7d32",
-      },
-      error: {
-        main: "#d32f2f",
-      },
+      primary: { main: "#1976d2" },
+      success: { main: "#2e7d32" },
+      error: { main: "#d32f2f" },
     },
   });
 
@@ -271,9 +264,9 @@ const App = () => {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <Box sx={{ padding: 4, maxWidth: 1500, margin: "0 auto" }}>
-        <Paper elevation={3} sx={{ padding: 4 }}>
-          {/* Linha de status do bot + conexão */}
+      <Box sx={{ p: 4, maxWidth: 1200, mx: "auto" }}>
+        <Paper elevation={3} sx={{ p: 3 }}>
+          {/* Barra de status */}
           <Stack
             direction="row"
             spacing={2}
@@ -282,17 +275,17 @@ const App = () => {
             mb={2}
           >
             <Stack direction="row" spacing={1} alignItems="center">
-              <div
-                style={{
-                  width: 15,
-                  height: 15,
-                  borderRadius: 25,
-                  background: botRunning ? "green" : "red",
+              <Box
+                sx={{
+                  width: 14,
+                  height: 14,
+                  borderRadius: 999,
+                  bgcolor: botRunning ? "success.main" : "error.main",
                 }}
               />
               <Typography
                 variant="body2"
-                sx={{ color: botRunning ? "green" : "red" }}
+                sx={{ color: botRunning ? "success.main" : "error.main" }}
               >
                 {botRunning ? "Bot is running" : "Bot is stopped"}
               </Typography>
@@ -316,264 +309,328 @@ const App = () => {
             Binance Configuration
           </Typography>
 
-          {/* Side */}
-          <FormControl fullWidth>
-            <InputLabel id="SideId">Side</InputLabel>
-            <Select
-              labelId="SideId"
-              name="Side"
-              id="SideId"
-              value={formData.Side}
-              label="Side"
-              onChange={handleChange}
-              fullWidth
-              style={{ margin: "0 0 40px 0" }}
-            >
-              <MenuItem value={"buy"}>Buy</MenuItem>
-              <MenuItem value={"sell"}>Sell</MenuItem>
-              <MenuItem value={"both"}>Both</MenuItem>
-            </Select>
-          </FormControl>
+          <Divider sx={{ mb: 3 }} />
 
-          {/* Thief order */}
-          <FormControl fullWidth>
-            <InputLabel id="ThiefOrderId">Thief order</InputLabel>
-            <Select
-              labelId="ThiefOrderId"
-              name="ThiefOrder"
-              id="ThiefOrderId"
-              value={formData.ThiefOrder}
-              label="ThiefOrder"
-              onChange={handleChange}
-              fullWidth
-              style={{ margin: "0 0 40px 0" }}
-            >
-              <MenuItem value={true}>Enabled</MenuItem>
-              <MenuItem value={false}>Disabled</MenuItem>
-            </Select>
-          </FormControl>
+          {/* GRID PRINCIPAL EM 2 COLUNAS */}
+          <Grid container spacing={3}>
+            {/* COLUNA ESQUERDA: CONFIG BÁSICA */}
+            <Grid item xs={12} md={6}>
+              <Typography
+                variant="subtitle1"
+                color="text.secondary"
+                sx={{ mb: 1 }}
+              >
+                Trading settings
+              </Typography>
 
-          {/* Inputs principais */}
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-            }}
-          >
-            <TextField
-              style={{ margin: "0 0 40px 0" }}
-              label="Spread Risk Adjust (Bps)"
-              name="SpreadRiskAdjBps"
-              type="text"
-              value={formData.SpreadRiskAdjBps}
-              onChange={handleChange}
-            />
-
-            <TextField
-              style={{ margin: "0 0 40px 0" }}
-              label="Spread Buy (Bps)"
-              name="SpreadBuyBps"
-              type="text"
-              value={formData.SpreadBuyBps}
-              onChange={handleChange}
-            />
-            <TextField
-              style={{ margin: "0 0 40px 0" }}
-              label="Spread Sell (Bps)"
-              name="SpreadSellBps"
-              type="text"
-              value={formData.SpreadSellBps}
-              onChange={handleChange}
-            />
-            <TextField
-              style={{ margin: "0 0 40px 0" }}
-              label="Order Size (Dol $)"
-              name="OrderSizeDol"
-              type="text"
-              value={formData.OrderSizeDol}
-              onChange={handleChange}
-            />
-            <TextField
-              style={{ margin: "0 0 40px 0" }}
-              label="Tolerance (Bps)"
-              name="ToleranceBps"
-              type="text"
-              value={formData.ToleranceBps}
-              onChange={handleChange}
-            />
-
-            {formData.ThiefOrder && (
-              <>
-                <TextField
-                  style={{ margin: "0 0 40px 0" }}
-                  label="Thief Spread Buy (Bps)"
-                  name="ThiefSpreadBuyBps"
-                  type="text"
-                  value={formData.ThiefSpreadBuyBps}
+              <FormControl fullWidth sx={{ mb: 2.5 }}>
+                <InputLabel id="SideId">Side</InputLabel>
+                <Select
+                  labelId="SideId"
+                  name="Side"
+                  id="SideId"
+                  value={formData.Side}
+                  label="Side"
                   onChange={handleChange}
-                />
-                <TextField
-                  style={{ margin: "0 0 40px 0" }}
-                  label="Thief Spread Sell (Bps)"
-                  name="ThiefSpreadSellBps"
-                  type="text"
-                  value={formData.ThiefSpreadSellBps}
-                  onChange={handleChange}
-                />
-                <TextField
-                  style={{ margin: "0 0 40px 0" }}
-                  label="Thief Order Size (Dol $)"
-                  name="ThiefOrderSizeDol"
-                  type="text"
-                  value={formData.ThiefOrderSizeDol}
-                  onChange={handleChange}
-                />
-              </>
-            )}
-          </div>
-
-          {/* CARD DO RISK ADJUST */}
-          <Box mt={4}>
-            <Paper
-              elevation={1}
-              sx={{
-                p: 2,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                borderLeft: riskAdjustBps != null ? 4 : 0,
-                borderLeftColor:
-                  riskAdjustBps != null
-                    ? riskAdjustBps > 0
-                      ? "error.main"
-                      : riskAdjustBps < 0
-                      ? "success.main"
-                      : "grey.500"
-                    : "transparent",
-                bgcolor: riskAdjustHighlight
-                  ? "action.hover"
-                  : "background.paper",
-                transition: "background-color 0.3s ease",
-              }}
-            >
-              <Box>
-                <Typography variant="subtitle2" color="text.secondary">
-                  Current Risk Adjust
-                </Typography>
-                <Typography variant="h5">
-                  {riskAdjustBps != null
-                    ? `${riskAdjustBps.toFixed(0)} Bps`
-                    : "—"}
-                </Typography>
-              </Box>
-              {riskAdjustUpdatedAt && (
-                <Typography variant="caption" color="text.secondary">
-                  Updated at{" "}
-                  {riskAdjustUpdatedAt.toLocaleTimeString(undefined, {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                    second: "2-digit",
-                  })}
-                </Typography>
-              )}
-            </Paper>
-          </Box>
-
-          {/* Ações */}
-          <Stack
-            direction="row"
-            spacing={3}
-            justifyContent="center"
-            marginTop={5}
-            flexWrap="wrap"
-          >
-            <Button
-              variant="outlined"
-              color="primary"
-              onClick={handleShowRiskAdjust}
-            >
-              Get Risk Adjust
-            </Button>
-            <Button
-              variant="outlined"
-              color="error"
-              onClick={handleRiskAdjustReset}
-            >
-              Reset Risk Adjust
-            </Button>
-            <Button variant="contained" color="primary" onClick={handleSave}>
-              Save
-            </Button>
-            <Button
-              variant="outlined"
-              color="success"
-              onClick={handleStart}
-            >
-              Start
-            </Button>
-            <Button variant="outlined" color="error" onClick={handleStop}>
-              Stop
-            </Button>
-            <Button
-              variant="outlined"
-              onClick={handleCloseOrders}
-            >
-              Close Orders
-            </Button>
-            <Button
-              onClick={() => setUpdateSocket(!updateSocket)}
-              variant="outlined"
-              color="primary"
-            >
-              Reconnect Socket
-            </Button>
-          </Stack>
-
-          {/* Card de preços (quando API mandar Status: "prices") */}
-          {prices && (
-            <Box mt={4}>
-              <Paper elevation={1} sx={{ p: 2 }}>
-                <Typography
-                  variant="subtitle2"
-                  color="text.secondary"
-                  gutterBottom
                 >
-                  Price preview (after saving spreads)
-                </Typography>
+                  <MenuItem value={"buy"}>Buy</MenuItem>
+                  <MenuItem value={"sell"}>Sell</MenuItem>
+                  <MenuItem value={"both"}>Both</MenuItem>
+                </Select>
+              </FormControl>
 
-                <Stack direction="row" spacing={4} flexWrap="wrap">
+              <FormControl fullWidth sx={{ mb: 2.5 }}>
+                <InputLabel id="ThiefOrderId">Thief order</InputLabel>
+                <Select
+                  labelId="ThiefOrderId"
+                  name="ThiefOrder"
+                  id="ThiefOrderId"
+                  value={formData.ThiefOrder}
+                  label="ThiefOrder"
+                  onChange={handleChange}
+                >
+                  <MenuItem value={true}>Enabled</MenuItem>
+                  <MenuItem value={false}>Disabled</MenuItem>
+                </Select>
+              </FormControl>
+
+              <TextField
+                sx={{ mb: 2.5 }}
+                label="Spread Risk Adjust (Bps)"
+                name="SpreadRiskAdjBps"
+                type="text"
+                value={formData.SpreadRiskAdjBps}
+                onChange={handleChange}
+                fullWidth
+              />
+              <TextField
+                sx={{ mb: 2.5 }}
+                label="Spread Buy (Bps)"
+                name="SpreadBuyBps"
+                type="text"
+                value={formData.SpreadBuyBps}
+                onChange={handleChange}
+                fullWidth
+              />
+              <TextField
+                sx={{ mb: 2.5 }}
+                label="Spread Sell (Bps)"
+                name="SpreadSellBps"
+                type="text"
+                value={formData.SpreadSellBps}
+                onChange={handleChange}
+                fullWidth
+              />
+              <TextField
+                sx={{ mb: 2.5 }}
+                label="Order Size (Dol $)"
+                name="OrderSizeDol"
+                type="text"
+                value={formData.OrderSizeDol}
+                onChange={handleChange}
+                fullWidth
+              />
+              <TextField
+                sx={{ mb: 2.5 }}
+                label="Tolerance (Bps)"
+                name="ToleranceBps"
+                type="text"
+                value={formData.ToleranceBps}
+                onChange={handleChange}
+                fullWidth
+              />
+
+              {formData.ThiefOrder && (
+                <>
+                  <TextField
+                    sx={{ mb: 2.5 }}
+                    label="Thief Spread Buy (Bps)"
+                    name="ThiefSpreadBuyBps"
+                    type="text"
+                    value={formData.ThiefSpreadBuyBps}
+                    onChange={handleChange}
+                    fullWidth
+                  />
+                  <TextField
+                    sx={{ mb: 2.5 }}
+                    label="Thief Spread Sell (Bps)"
+                    name="ThiefSpreadSellBps"
+                    type="text"
+                    value={formData.ThiefSpreadSellBps}
+                    onChange={handleChange}
+                    fullWidth
+                  />
+                  <TextField
+                    sx={{ mb: 2.5 }}
+                    label="Thief Order Size (Dol $)"
+                    name="ThiefOrderSizeDol"
+                    type="text"
+                    value={formData.ThiefOrderSizeDol}
+                    onChange={handleChange}
+                    fullWidth
+                  />
+                </>
+              )}
+            </Grid>
+
+            {/* COLUNA DIREITA: RISK + AÇÕES + PREÇOS */}
+            <Grid item xs={12} md={6}>
+              {/* Card Risk Adjust */}
+              <Paper
+                elevation={1}
+                sx={{
+                  p: 2,
+                  mb: 3,
+                  borderLeft: riskAdjustBps != null ? 4 : 0,
+                  borderLeftColor:
+                    riskAdjustBps != null
+                      ? riskAdjustBps > 0
+                        ? "error.main"
+                        : riskAdjustBps < 0
+                        ? "success.main"
+                        : "grey.500"
+                      : "transparent",
+                  bgcolor: riskAdjustHighlight
+                    ? "action.hover"
+                    : "background.paper",
+                  transition: "background-color 0.3s ease",
+                }}
+              >
+                <Stack
+                  direction="row"
+                  justifyContent="space-between"
+                  alignItems="flex-start"
+                >
                   <Box>
-                    <Typography variant="caption" color="text.secondary">
-                      Main book
+                    <Typography
+                      variant="subtitle2"
+                      color="text.secondary"
+                      gutterBottom
+                    >
+                      Current Risk Adjust
                     </Typography>
-                    <Typography variant="body2">
-                      Ask: <strong>{ask}</strong>
-                    </Typography>
-                    <Typography variant="body2">
-                      Bid: <strong>{bid}</strong>
-                    </Typography>
-                    <Typography variant="body2">
-                      Spread: <strong>{spread}</strong>
+                    <Typography variant="h5">
+                      {riskAdjustBps != null
+                        ? `${riskAdjustBps.toFixed(0)} Bps`
+                        : "—"}
                     </Typography>
                   </Box>
-
-                  {formData.ThiefOrder && (
-                    <Box>
-                      <Typography variant="caption" color="text.secondary">
-                        Thief book
-                      </Typography>
-                      <Typography variant="body2">
-                        Thief Ask: <strong>{thiefAsk}</strong>
-                      </Typography>
-                      <Typography variant="body2">
-                        Thief Bid: <strong>{thiefBid}</strong>
-                      </Typography>
-                    </Box>
+                  {riskAdjustUpdatedAt && (
+                    <Typography variant="caption" color="text.secondary">
+                      Updated at{" "}
+                      {riskAdjustUpdatedAt.toLocaleTimeString(undefined, {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        second: "2-digit",
+                      })}
+                    </Typography>
                   )}
                 </Stack>
               </Paper>
-            </Box>
-          )}
+
+              {/* Botões principais */}
+              {/* Botões principais */}
+<Paper elevation={1} sx={{ p: 2, mb: 3 }}>
+  <Typography
+    variant="subtitle2"
+    color="text.secondary"
+    gutterBottom
+  >
+    Controls
+  </Typography>
+
+  <Stack direction="column" spacing={2}>
+    {/* Ação principal */}
+    <Button
+      variant="contained"
+      color="primary"
+      onClick={handleSave}
+      fullWidth
+    >
+      SAVE CONFIG
+    </Button>
+
+    {/* Grupo: Risk */}
+    <Stack direction="row" spacing={1} alignItems="center">
+      <Typography
+        variant="caption"
+        color="text.secondary"
+        sx={{ minWidth: 80 }}
+      >
+        Risk
+      </Typography>
+      <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+        <Button
+          variant="outlined"
+          color="primary"
+          onClick={handleShowRiskAdjust}
+        >
+          Get risk
+        </Button>
+        <Button
+          variant="outlined"
+          color="error"
+          onClick={handleRiskAdjustReset}
+        >
+          Reset risk
+        </Button>
+      </Stack>
+    </Stack>
+
+    {/* Grupo: Bot */}
+    <Stack direction="row" spacing={1} alignItems="center">
+      <Typography
+        variant="caption"
+        color="text.secondary"
+        sx={{ minWidth: 80 }}
+      >
+        Bot
+      </Typography>
+      <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+        <Button
+          variant="contained"
+          color="success"
+          onClick={handleStart}
+        >
+          Start
+        </Button>
+        <Button
+          variant="outlined"
+          color="error"
+          onClick={handleStop}
+        >
+          Stop
+        </Button>
+      </Stack>
+    </Stack>
+
+    {/* Grupo: Connection */}
+    <Stack direction="row" spacing={1} alignItems="center">
+      <Typography
+        variant="caption"
+        color="text.secondary"
+        sx={{ minWidth: 80 }}
+      >
+        Connection
+      </Typography>
+      <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+        <Button
+          variant="text"
+          color="primary"
+          onClick={() => setUpdateSocket(!updateSocket)}
+        >
+          Reconnect
+        </Button>
+      </Stack>
+    </Stack>
+  </Stack>
+</Paper>
+
+
+              {/* Preview de preços */}
+              {prices && (
+                <Paper elevation={1} sx={{ p: 2 }}>
+                  <Typography
+                    variant="subtitle2"
+                    color="text.secondary"
+                    gutterBottom
+                  >
+                    Price preview
+                  </Typography>
+                  <Stack direction="row" spacing={4} flexWrap="wrap">
+                    <Box>
+                      <Typography variant="caption" color="text.secondary">
+                        Main book
+                      </Typography>
+                      <Typography variant="body2">
+                        Ask: <strong>{ask}</strong>
+                      </Typography>
+                      <Typography variant="body2">
+                        Bid: <strong>{bid}</strong>
+                      </Typography>
+                      <Typography variant="body2">
+                        Spread: <strong>{spread}</strong>
+                      </Typography>
+                    </Box>
+
+                    {formData.ThiefOrder && (
+                      <Box>
+                        <Typography variant="caption" color="text.secondary">
+                          Thief book
+                        </Typography>
+                        <Typography variant="body2">
+                          Thief Ask: <strong>{thiefAsk}</strong>
+                        </Typography>
+                        <Typography variant="body2">
+                          Thief Bid: <strong>{thiefBid}</strong>
+                        </Typography>
+                      </Box>
+                    )}
+                  </Stack>
+                </Paper>
+              )}
+            </Grid>
+          </Grid>
         </Paper>
 
         {/* Barra de status de conexão em forma de Alert (opcional) */}
